@@ -1,10 +1,9 @@
 "use client"; // makes app client-sided
 
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { firestore } from "@/firebase";
-import { Box, Button, Modal, Typography, Stack, TextField } from "@mui/material";
-import { query, collection, getDocs, setDoc, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { Box, Button, Modal, Typography, Stack, TextField } from "@mui/material"; // react components
+import { collection, query, getDocs, setDoc, doc, getDoc, deleteDoc } from "firebase/firestore";
 
 export default function Home() {
   const [inventory, setInventory] = useState([]); // default inventory to empty array, changes when setInventory called
@@ -16,29 +15,13 @@ export default function Home() {
     const docs = await getDocs(snapshot); // individual documents within inventory (such as boxes)
     let inventoryList = [];
 
-    docs.forEach((doc) => {
+    docs.forEach((doc) => {   // adds each doc from firestore DB to invenstoryList as an object with name and data
       inventoryList.push({
         name: doc.id,
         ...doc.data()
       });
     });
     setInventory(inventoryList);
-  };
-
-  // helper function to remove items
-  const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, "inventory"), item); // get document reference of the inventory document and a specified item
-    const docSnap = await getDoc(docRef); //
-
-    if (docSnap.exists()) {
-      const { quantity } = docSnap.data();
-      if (quantity === 1) {
-        await deleteDoc(docRef); // if the quantity is 1, just delete the whole collection
-      } else {
-        await setDoc(docRef, { quantity: quantity - 1 }); // else just decrement the quantity by 1
-      }
-    }
-    await updateInventory(); // once the changes to quantity have been made, reload the inventory on the UI
   };
 
   // helper to add 
@@ -51,6 +34,22 @@ export default function Home() {
       await setDoc(docRef, { quantity: quantity + 1 }); // increment an existing document by 1
     } else {
       await setDoc(docRef, { quantity: 1 });
+    }
+    await updateInventory(); // once the changes to quantity have been made, reload the inventory on the UI
+  };
+
+  // helper function to remove items
+  const removeItem = async (item) => {
+    const docRef = doc(collection(firestore, "inventory"), item); // get document reference of the inventory document and a specified item
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const { quantity } = docSnap.data();
+      if (quantity === 1) {
+        await deleteDoc(docRef); // if the quantity is 1, just delete the whole collection
+      } else {
+        await setDoc(docRef, { quantity: quantity - 1 }); // else just decrement the quantity by 1
+      }
     }
     await updateInventory(); // once the changes to quantity have been made, reload the inventory on the UI
   };
@@ -72,6 +71,7 @@ export default function Home() {
       alignItems="center"
       gap={2}
     >
+      <Typography variant="h2" paddingTop={0} paddingBottom={10}>Inventory Manager</Typography>
       <Modal open={open} onClose={handleClose}>
         <Box 
           position="absolute"
@@ -122,7 +122,41 @@ export default function Home() {
         Add New Item
       </Button>
       <Box border="1px solid #333">
-        <Box width="800px" height="100px" bgcolor="#ADD8E6">Inventory</Box>
+        <Box
+          width="800px"
+          height="100px"
+          bgcolor="#ADD8E6"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Typography variant="h2" color="#333">Items</Typography>
+        </Box>
+      <Stack width="800px" height="300px" spacing={2} overflow="auto">
+        {inventory.map(({name, quantity}) => (
+            <Box
+              key={name}
+              width="100%"
+              minHeight="150px"
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+              bgcolor="#f0f0f0"
+              padding={5}
+            >
+              <Typography variant="h3" color="#333" textAlign="center">
+                {name.charAt(0).toUpperCase()  + name.slice(1)}
+              </Typography>
+              <Typography variant="h3" color="#333" textAlign="center">
+                {quantity}
+              </Typography>
+              <Stack direction="row" spacing={2}>
+                <Button variant="contained" onClick={() => {addItem(name)}}>Add</Button>
+                <Button variant="contained" onClick={() => {removeItem(name)}}>Remove</Button>
+              </Stack>
+            </Box>
+          ))}
+      </Stack>
       </Box>
     </Box>
   );
